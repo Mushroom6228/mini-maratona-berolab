@@ -15,7 +15,9 @@ class ObstacleManager:
         for obstacle in self.obstacles[:]:
             obstacle.update(game_speed, self.obstacles)
             # Colisão precisa
-            if player.dino_rect.colliderect(obstacle.rect):
+            # Ajuste: só considera colisão se estiver a 2 pixels ou menos de distância
+            inflate_rect = obstacle.rect.inflate(-4, -4)  # Reduz 2px de cada lado
+            if player.dino_rect.colliderect(inflate_rect):
                 if player.has_shield or player.has_hammer:
                     # Toca o som de quebrar se disponível (corrigido para garantir que só toca se colidir COM powerup)
                     if hasattr(player, 'game') and hasattr(player.game, 'powerup_manager') and hasattr(player.game.powerup_manager, 'break_sound'):

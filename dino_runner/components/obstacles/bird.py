@@ -12,8 +12,7 @@ class Bird(Obstacle):
         self.step_index = 0
 
     def draw(self, screen):
-        screen.blit(self.images[self.step_index // 5], self.rect)
+        screen.blit(self.images[self.step_index // 7], self.rect)  # Animação mais devagar
         self.step_index += 1
-
-        if self.step_index >= 10:
+        if self.step_index >= 14:
             self.step_index = 0

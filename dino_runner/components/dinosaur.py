@@ -22,8 +22,13 @@ class Dinosaur:
         self.has_hammer = False
         self.shield_time_up = 0
         self.hammer_time_up = 0
+        self.is_invincible = False  # Corrige erro de atributo ausente
+        self.invincible_time_up = 0  # Tempo até o fim da invencibilidade
 
     def update(self, user_input):
+        # Checa se a invencibilidade acabou
+        if self.is_invincible and pygame.time.get_ticks() > self.invincible_time_up:
+            self.is_invincible = False
         # A lógica de estado é tratada aqui.
         # O pulo é iniciado por um evento (ver game.py) e termina por si só.
         # O agachamento é baseado na tecla pressionada.
@@ -37,17 +42,20 @@ class Dinosaur:
             self.is_ducking = False
             self.is_running = True
             self.run()
-
         if self.step_index >= 10:
             self.step_index = 0
 
+    def start_invincibility(self, current_time):
+        self.is_invincible = True
+        self.invincible_time_up = current_time + 3000  # 3 segundos de invencibilidade
+
     def run(self):
         if self.has_hammer:
-            self.image = RUNNING_HAMMER[self.step_index // 5]
+            self.image = RUNNING_HAMMER[self.step_index // 7]  # Animação mais devagar
         elif self.has_shield:
-            self.image = RUNNING_SHIELD[self.step_index // 5]
+            self.image = RUNNING_SHIELD[self.step_index // 7]  # Animação mais devagar
         else:
-            self.image = RUNNING[self.step_index // 5]
+            self.image = RUNNING[self.step_index // 7]  # Animação mais devagar
         self.dino_rect = self.image.get_rect()
         self.dino_rect.x = self.X_POS
         self.dino_rect.y = self.Y_POS
@@ -88,4 +96,21 @@ class Dinosaur:
         self.step_index += 1
 
     def draw(self, screen):
-        screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
+        # Efeito de piscar durante a invencibilidade
+        now = pygame.time.get_ticks()
+        piscar_powerup = False
+        # Pisca se faltar 2 segundos para acabar o powerup
+        if self.has_shield and self.shield_time_up - now <= 2000 and self.shield_time_up - now > 0:
+            piscar_powerup = True
+        if self.has_hammer and self.hammer_time_up - now <= 2000 and self.hammer_time_up - now > 0:
+            piscar_powerup = True
+        if self.is_invincible:
+            # Pisca a cada 150ms: só desenha se dentro do intervalo
+            if (now // 150) % 2 == 0:
+                screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
+        elif piscar_powerup:
+            # Pisca a cada 150ms: só desenha se dentro do intervalo
+            if (now // 150) % 2 == 0:
+                screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
+        else:
+            screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y))

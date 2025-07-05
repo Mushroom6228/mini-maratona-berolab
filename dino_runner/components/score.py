@@ -23,8 +23,8 @@ class Score:
 
     def update(self, is_night=False):
         # 100 pontos em 10 segundos = 10 pontos por segundo
-        # Com FPS = 30, a cada frame: 10/30 = 0.333...
-        self._accum += 0.333
+        # Com FPS = 60, a cada frame: 10/60 = 0.1666...
+        self._accum += 0.1666  # Aproximadamente 10 pontos por segundo em 60 FPS
         if self._accum >= 1:
             self.points += int(self._accum)
             self._accum -= int(self._accum)

@@ -19,80 +19,82 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.playing = False
-        self.game_speed = 15  # Slower initial speed
-        self.base_game_speed = 15  # Initial value for reset
+        self.game_speed = 13  # Velocidade inicial um pouco maior
+        self.base_game_speed = 13  # Valor inicial para reset
         self.last_speedup_time = pygame.time.get_ticks()
         self.player = Dinosaur()
+        self.player.game = self  # Garante referência para o dinossauro
         self.obstacle_manager = ObstacleManager()
         self.powerup_manager = PowerUpManager()
         self.cloud = Cloud()
         self.score = Score()
         self.lives = 3
         self.high_score = self.load_high_score()
-        # Day/night cycle: 1 min day, 1 min night, fast transition (5s)
+        # Ciclo Dia/Noite: 1 min dia, 1 min noite, transição rápida (5s)
         self.day = True
         self.day_night_timer = pygame.time.get_ticks()
-        self.day_night_interval = 60000  # 1 minute
-        self.day_night_transition = 5000  # 5 seconds
-        self.day_night_progress = 0  # 0=day, 1=night
+        self.day_night_interval = 40000  # 40 segundos
+        self.day_night_transition = 5000  # 5 segundos
+        self.day_night_progress = 0  # 0=dia, 1=noite
         self.day_night_direction = 1
         self.in_transition = False
         self.transition_start = 0
-        # Adjustment to align the ground with the dinosaur's feet
-        # The value 380 was tested to align the PNG ground with the dinosaur
+        # Ajuste para alinhar o chão do cenário com o pé do dinossauro
+        # O valor 380 foi testado para alinhar o chão do PNG com o dinossauro
         self.bg_x_pos = 0
         self.bg_y_pos = 380
         self.game_over = False
 
-        # Define get_lives as an instance method to pass to HUD
+        # Define get_lives como um método da instância para passar para HUD
         def get_lives_func():
             return self.lives
         self.hud = HUD(self.player, get_lives_func)
 
         self.jump_sound = None
         self.hit_sound = None
-        self.die_sound = None
+        self.hurt_sound = None
         jump_path = os.path.join('dino_runner', 'assets', 'Other', 'jump.wav')
         hit_path = os.path.join('dino_runner', 'assets', 'Other', 'hit.wav')
-        die_path = os.path.join('dino_runner', 'assets', 'Other', 'die.wav')
+        hurt_path = os.path.join('dino_runner', 'assets', 'Other', 'hurt.wav')
         if os.path.exists(jump_path):
             self.jump_sound = pygame.mixer.Sound(jump_path)
         if os.path.exists(hit_path):
             self.hit_sound = pygame.mixer.Sound(hit_path)
-        if os.path.exists(die_path):
-            self.die_sound = pygame.mixer.Sound(die_path)
+        if os.path.exists(hurt_path):
+            self.hurt_sound = pygame.mixer.Sound(hurt_path)
+            self.hurt_sound.set_volume(1.0)  # Garante volume máximo
 
     def load_high_score(self):
-        """Loads the high score from a file."""
+        """Carrega a pontuação máxima de um arquivo."""
         if os.path.exists('highscore.txt'):
             with open('highscore.txt', 'r') as f:
                 try:
                     return int(f.read())
                 except ValueError:
-                    return 0 # Handle case where file is empty or contains non-integer
+                    return 0 # Lida com o caso em que o arquivo está vazio ou contém algo que não é um número
         return 0
 
     def save_high_score(self):
-        """Saves the current high score to a file."""
+        """Salva a pontuação máxima atual em um arquivo."""
         with open('highscore.txt', 'w') as f:
             f.write(str(self.high_score))
 
     def execute(self):
-        """Main game loop, handles game states (menu, playing, game over)."""
-        self.playing = False # Start with menu
-        self.game_over = False # Ensure game_over is false on initial start
+        """Loop principal do jogo, lida com os estados do jogo (menu, jogando, game over)."""
+        self.playing = False # Começa com o menu
+        self.game_over = False # Garante que game_over seja falso no início
         while self.running:
             if not self.playing:
                 if self.game_over:
-                    self.show_game_over() # This will handle resetting or quitting
+                    self.show_game_over() # Isso lidará com o reset ou saída
                 else:
-                    self.show_menu() # This will handle starting the game or quitting
+                    self.show_menu() # Isso lidará com o início do jogo ou saída
             else:
-                self.run_game_loop() # This will set playing=False if game over or quit
+                self.run_game_loop() # Isso definirá playing=False se for game over ou sair
         pygame.quit()
 
     def run_game_loop(self):
-        """Runs the main game logic when the game is playing."""
+        """Executa a lógica principal do jogo quando o jogo está em andamento."""
         while self.playing:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -106,9 +108,9 @@ class Game:
 
             user_input = pygame.key.get_pressed()
             now = pygame.time.get_ticks()
-            # Increase game speed gradually
-            if now - self.last_speedup_time > 5000:
-                self.game_speed += 1
+            # Aumenta a velocidade do jogo: +0.5 a cada 10 segundos
+            if now - self.last_speedup_time > 10000:
+                self.game_speed += 0.5
                 self.last_speedup_time = now
 
             self.update_day_night()
@@ -118,27 +120,31 @@ class Game:
             self.cloud.update(self.game_speed)
             self.cloud.draw(self.screen)
 
-            # Only draw the animated dinosaur while playing
-            if self.playing: # Check self.playing again in case it changed due to collision
-                self.player.update(user_input)
-                self.player.draw(self.screen)
+            # Atualiza e desenha o dinossauro
+            self.player.update(user_input)
+            self.player.draw(self.screen)
 
-            # Update obstacles and check for collisions
-            if self.obstacle_manager.update(self.game_speed, self.player):
-                if self.die_sound:  # Toca o som ao perder um coração
-                    self.die_sound.play()
-                self.lives -= 1
-                if self.lives > 0:
-                    self.reset_round()
-                    continue # Skip remaining drawing/updating for this frame to avoid visual glitches
-                else:
-                    # Pause the game immediately, without redrawing the animated dinosaur
-                    self.playing = False
-                    self.game_over = True
-                    # The loop will naturally exit after this iteration
+            # Atualiza obstáculos e verifica colisões
+            collision_detected = self.obstacle_manager.update(self.game_speed, self.player)
+            if collision_detected:
+                if not self.player.is_invincible: # Só leva dano se não estiver invencível
+                    if self.hit_sound:
+                        self.hit_sound.play()
+                    if self.hurt_sound:  # Toca o som de dano sempre que perder um coração
+                        print('DEBUG: Tocando hurt.wav')
+                        self.hurt_sound.play()
+                    self.lives -= 1
+                    if self.lives > 0:
+                        self.player.start_invincibility(pygame.time.get_ticks()) # Inicia invencibilidade
+                        # O jogo continua, sem resetar a posição do dinossauro ou a rodada.
+                    else:
+                        # Vidas são 0, é game over
+                        self.playing = False
+                        self.game_over = True
+                        # O loop sairá naturalmente após esta iteração
 
-            # Only draw obstacles, powerups, score, and HUD if game is still playing
-            if self.playing:
+            # Desenha obstáculos, power-ups, pontuação e HUD se o jogo ainda estiver em andamento
+            if self.playing: # Verifica novamente se o jogo ainda está jogando (pode ter mudado após colisão)
                 self.obstacle_manager.draw(self.screen)
                 self.powerup_manager.update(self.game_speed, self.player)
                 self.powerup_manager.draw(self.screen)
@@ -152,44 +158,48 @@ class Game:
             self.clock.tick(FPS)
 
     def reset_round(self):
-        """Resets game elements for a new round after a hit (but not game over)."""
+        """Reseta elementos do jogo para uma nova rodada após um acerto (mas não game over).
+        NOTA: Esta função não é mais chamada em caso de acerto com vidas restantes,
+        apenas o estado de invencibilidade é ativado. Ela pode ser usada para
+        outros resets se necessário."""
         self.obstacle_manager.reset()
         self.powerup_manager.reset()
         self.player = Dinosaur()
-        # Re-initialize HUD with the new player and current lives
-        self.hud = HUD(self.player, lambda: self.lives) # Use lambda to get current lives
-        # Score and lives are not reset in a round reset
+        self.player.game = self  # Garante referência para o dinossauro
+        self.hud = HUD(self.player, lambda: self.lives) # Usa lambda para obter as vidas atuais
+        # Pontuação e vidas não são resetadas em um reset de rodada
 
     def reset_game(self):
-        """Resets all game elements for a completely new game."""
+        """Reseta todos os elementos do jogo para um novo jogo completo."""
         self.obstacle_manager.reset()
         self.powerup_manager.reset()
         self.score.reset()
         self.player = Dinosaur()
-        self.hud = HUD(self.player, lambda: self.lives) # Use lambda to get current lives
+        self.player.game = self  # Garante referência para o dinossauro
+        self.hud = HUD(self.player, lambda: self.lives) # Usa lambda para obter as vidas atuais
         self.bg_x_pos = 0
         self.lives = 3
-        # Reset day/night cycle
+        # Reseta ciclo dia/noite
         self.day = True
         self.day_night_timer = pygame.time.get_ticks()
         self.in_transition = False
         self.day_night_progress = 0
         self.day_night_direction = 1
         self.transition_start = 0
-        # Reset base speed
+        # Reseta velocidade base
         self.game_speed = self.base_game_speed
         self.last_speedup_time = pygame.time.get_ticks()
 
     def draw_high_score(self):
-        """Draws the high score on the screen."""
+        """Desenha a pontuação máxima na tela."""
         font = pygame.font.Font(None, 28)
-        text = font.render(f'High Score: {self.high_score}', True, (200, 0, 0) if self.day else (255, 255, 0))
+        text = font.render(f'High Score: {self.high_score}', True, (200, 0, 0))  # Sempre vermelho
         self.screen.blit(text, (SCREEN_WIDTH - 220, 10))
         if self.score.points > self.high_score:
             self.high_score = self.score.points
 
     def update_day_night(self):
-        """Updates the day/night cycle and transition."""
+        """Atualiza o ciclo dia/noite e a transição."""
         now = pygame.time.get_ticks()
         if not self.in_transition:
             if now - self.day_night_timer > self.day_night_interval:
@@ -201,17 +211,17 @@ class Game:
                 self.day = not self.day
                 self.day_night_timer = now
                 self.in_transition = False
-                # Corrected: if it just became night, progress is 1; if it just became day, progress is 0
+                # Corrigido: se acabou de virar noite, progresso é 1; se acabou de virar dia, progresso é 0
                 self.day_night_progress = 1 if not self.day else 0
             else:
-                # Correct the transition direction
-                if self.day: # Transitioning from day to night
+                # Corrige a direção da transição
+                if self.day: # Transicionando de dia para noite
                     self.day_night_progress = progress
-                else: # Transitioning from night to day
+                else: # Transicionando de noite para dia
                     self.day_night_progress = 1 - progress
 
     def get_day_night_color(self):
-        """Returns the current background color based on day/night cycle."""
+        """Retorna a cor de fundo atual baseada no ciclo dia/noite."""
         day_color = (255, 255, 255)
         night_color = (30, 30, 30)
         p = self.day_night_progress if self.in_transition else (0 if self.day else 1)
@@ -222,17 +232,17 @@ class Game:
         )
 
     def handle_powerup_timers(self):
-        """Manages the duration of active power-ups."""
+        """Gerencia a duração dos power-ups ativos."""
         current_time = pygame.time.get_ticks()
         if self.player.has_shield and current_time > self.player.shield_time_up:
             self.player.has_shield = False
-            self.player.run()  # Corrigido: chama método que atualiza a imagem
+            # A imagem do dinossauro será atualizada pelo método update() do próprio dinossauro
         if self.player.has_hammer and current_time > self.player.hammer_time_up:
             self.player.has_hammer = False
-            self.player.run()  # Corrigido: chama método que atualiza a imagem
-
+            # A imagem do dinossauro será atualizada pelo método update() do próprio dinossauro
+            
     def show_menu(self):
-        """Displays the game's main menu."""
+        """Exibe o menu principal do jogo."""
         anim_font = pygame.font.Font(None, 80)
         sub_font = pygame.font.Font(None, 36)
         free_font = pygame.font.Font(None, 36)
@@ -254,7 +264,7 @@ class Game:
                     if exit_rect.collidepoint(event.pos):
                         self.running = False
                         return
-            # Title animation
+            # Animação do título
             color_anim += color_dir
             if color_anim > 50 or color_anim < 0:
                 color_dir *= -1
@@ -263,18 +273,18 @@ class Game:
             title = anim_font.render('T-Rex 2.0', True, title_color)
             title_rect = title.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2-100))
             self.screen.blit(title, title_rect)
-            # Subtitle
+            # Subtítulo
             subtitle = sub_font.render('Atualizado', True, (100, 100, 100))
             subtitle_rect = subtitle.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2-40))
             self.screen.blit(subtitle, subtitle_rect)
-            # "Free" text
+            # Texto "Free"
             free = free_font.render('Free', True, (255, 255, 0))
             self.screen.blit(free, (title_rect.right+10, title_rect.top+10))
-            # "Entrar" button
+            # Botão "Entrar"
             pygame.draw.rect(self.screen, (0, 200, 0), button_rect, border_radius=10)
             entrar = button_font.render('Entrar', True, (255,255,255))
             self.screen.blit(entrar, (button_rect.x + (button_rect.width - entrar.get_width()) // 2, button_rect.y + (button_rect.height - entrar.get_height()) // 2))
-            # "Sair" button
+            # Botão "Sair"
             pygame.draw.rect(self.screen, (200, 0, 0), exit_rect, border_radius=10)
             sair = button_font.render('Sair', True, (255,255,255))
             self.screen.blit(sair, (exit_rect.x + (exit_rect.width - sair.get_width()) // 2, exit_rect.y + (exit_rect.height - sair.get_height()) // 2))
@@ -285,10 +295,10 @@ class Game:
 
     def show_game_over(self):
         """
-        Displays the game over screen, pausing the game at the moment of death.
-        Shows the exact scene of death, the dead dinosaur, and reset options.
+        Exibe a tela de Game Over, pausando o jogo no momento da morte.
+        Mostra a cena exata da morte, o dinossauro morto e as opções de reset.
         """
-        # Redraw the entire scene from the moment of death
+        # Redesenha toda a cena do momento da morte
         bg_color = self.get_day_night_color()
         self.screen.fill(bg_color)
         self.draw_background()
@@ -299,12 +309,12 @@ class Game:
         self.draw_high_score()
         self.hud.draw(self.screen)
 
-        # Draw the dead dinosaur at its exact position of death
+        # Desenha o dinossauro morto na posição exata da morte
         dino_dead_img = pygame.image.load(os.path.join(IMG_DIR, 'Dino', 'DinoDead.png'))
-        dino_rect = self.player.dino_rect.copy() # Use the dinosaur's rect at the moment of death
+        dino_rect = self.player.dino_rect.copy() # Usa o rect do dinossauro no momento da morte
         self.screen.blit(dino_dead_img, (dino_rect.x, dino_rect.y))
 
-        # Overlay Game Over and Reset images
+        # Sobrepõe as imagens de Game Over e Reset
         game_over_img = pygame.image.load(os.path.join(IMG_DIR, 'Other', 'GameOver.png'))
         reset_img = pygame.image.load(os.path.join(IMG_DIR, 'Other', 'Reset.png'))
         game_over_rect = game_over_img.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
@@ -312,38 +322,38 @@ class Game:
         self.screen.blit(game_over_img, game_over_rect)
         self.screen.blit(reset_img, reset_rect)
         
-        pygame.display.update() # Update the display to show the game over scene
+        pygame.display.update() # Atualiza a tela para mostrar a cena de game over
 
         waiting = True
-        reset_time = pygame.time.get_ticks()  # Mark the display time
+        reset_time = pygame.time.get_ticks()  # Marca o tempo de exibição
         while waiting:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.save_high_score() # Save high score before quitting
+                    self.save_high_score() # Salva a pontuação máxima antes de sair
                     self.running = False
                     waiting = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    # Add a small delay to prevent accidental clicks right after death
+                    # Adiciona um pequeno atraso para evitar cliques acidentais logo após a morte
                     if reset_rect.collidepoint(event.pos) and pygame.time.get_ticks() - reset_time > 500:
-                        self.save_high_score() # Save high score before resetting
+                        self.save_high_score() # Salva a pontuação máxima antes de resetar
                         self.reset_game()
                         self.game_over = False
                         self.playing = True
                         waiting = False
                 if event.type == pygame.KEYDOWN:
-                    # Allow keyboard input to reset as well
+                    # Permite entrada de teclado para resetar também
                     if pygame.time.get_ticks() - reset_time > 500:
-                        self.save_high_score() # Save high score before resetting
+                        self.save_high_score() # Salva a pontuação máxima antes de resetar
                         self.reset_game()
                         self.game_over = False
                         self.playing = True
                         waiting = False
 
     def draw_background(self):
-        """Draws the scrolling background."""
+        """Desenha o fundo rolante."""
         image_width = BG.get_width()
-        # Adjustment to align the ground with the dinosaur's feet
-        self.bg_y_pos = 380  # Adjust as needed for your PNG
+        # Ajuste para alinhar o chão do cenário com o pé do dinossauro
+        self.bg_y_pos = 380  # Ajuste conforme necessário para seu PNG
         self.screen.blit(BG, (self.bg_x_pos, self.bg_y_pos))
         self.screen.blit(BG, (self.bg_x_pos + image_width, self.bg_y_pos))
         self.bg_x_pos -= self.game_speed

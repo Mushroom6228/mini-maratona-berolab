@@ -8,7 +8,7 @@ class PowerUpManager:
     def __init__(self):
         self.power_ups = []
         self.last_powerup_time = 0
-        self.powerup_cooldown = 30000  # 30 segundos
+        self.powerup_cooldown = 20000  # 20 segundos
         self.powerup_sound = None
         self.break_sound = None
         powerup_path = os.path.join('dino_runner', 'assets', 'Other', 'powerup.wav')
@@ -17,21 +17,24 @@ class PowerUpManager:
             self.powerup_sound = pygame.mixer.Sound(powerup_path)
         if os.path.exists(break_path):
             self.break_sound = pygame.mixer.Sound(break_path)
+            self.break_sound.set_volume(0.4)  # Volume reduzido
 
     def update(self, game_speed, player):
         now = pygame.time.get_ticks()
         # Só aparece se não houver obstáculos próximos
         can_spawn = True
         for obs in getattr(player, 'game', []).obstacle_manager.obstacles if hasattr(player, 'game') else []:
-            if abs(obs.rect.x - player.dino_rect.x) < 400:
+            # Powerup só aparece se estiver a pelo menos 600px de qualquer obstáculo
+            if abs(obs.rect.x - player.dino_rect.x) < 600:
                 can_spawn = False
                 break
         if len(self.power_ups) == 0 and now - self.last_powerup_time > self.powerup_cooldown and can_spawn:
-            if random.randint(0, 1):
+            # Garante que só UM tipo aparece a cada 30s, alternando
+            if (now // self.powerup_cooldown) % 2 == 0:
                 powerup = Shield()
             else:
                 powerup = Hammer()
-            powerup.rect.x = player.dino_rect.x + 900  # Spawn mais longe
+            powerup.rect.x = player.dino_rect.x + 1200  # Spawn ainda mais longe
             self.power_ups.append(powerup)
             self.last_powerup_time = now
         for power_up in self.power_ups:
@@ -53,5 +56,5 @@ class PowerUpManager:
 
     def reset(self):
         self.power_ups = []
-        # Reinicia o timer para o momento atual
+        # Reinicia o timer para o momento atual, evitando spawn imediato
         self.last_powerup_time = pygame.time.get_ticks()
