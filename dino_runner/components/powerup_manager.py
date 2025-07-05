@@ -30,10 +30,10 @@ class PowerUpManager:
             if player.dino_rect.colliderect(power_up.rect):
                 if power_up.type == "shield":
                     player.has_shield = True
-                    player.shield_time_up = pygame.time.get_ticks() + 5000
+                    player.shield_time_up = pygame.time.get_ticks() + 8000  # 8 segundos
                 elif power_up.type == "hammer":
                     player.has_hammer = True
-                    player.hammer_time_up = pygame.time.get_ticks() + 5000
+                    player.hammer_time_up = pygame.time.get_ticks() + 8000  # 8 segundos
                 self.power_ups.remove(power_up)
 
     def draw(self, screen):

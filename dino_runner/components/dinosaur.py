@@ -24,26 +24,19 @@ class Dinosaur:
         self.hammer_time_up = 0
 
     def update(self, user_input):
+        # A lógica de estado é tratada aqui.
+        # O pulo é iniciado por um evento (ver game.py) e termina por si só.
+        # O agachamento é baseado na tecla pressionada.
         if self.is_jumping:
             self.jump()
-        elif self.is_ducking:
-            self.duck()
-        else:
-            self.run()
-
-        # Pulo: só inicia se pressionar a tecla (não segurando)
-        if (user_input[pygame.K_UP] or user_input[pygame.K_SPACE]) and not self.is_jumping:
-            self.is_jumping = True
-            self.is_running = False
-            self.is_ducking = False
-        elif user_input[pygame.K_DOWN] and not self.is_jumping:
+        elif user_input[pygame.K_DOWN]:
             self.is_ducking = True
             self.is_running = False
-            self.is_jumping = False
-        elif not self.is_jumping:
-            self.is_running = True
+            self.duck()
+        else:
             self.is_ducking = False
-            self.is_jumping = False
+            self.is_running = True
+            self.run()
 
         if self.step_index >= 10:
             self.step_index = 0
@@ -74,6 +67,13 @@ class Dinosaur:
             self.is_jumping = False
             self.jump_vel = self.JUMP_VEL
             self.dino_rect.y = self.Y_POS
+
+    def start_jump(self):
+        # Inicia o pulo apenas se não estiver pulando
+        if not self.is_jumping:
+            self.is_jumping = True
+            self.is_running = False
+            self.is_ducking = False
 
     def duck(self):
         if self.has_hammer:
