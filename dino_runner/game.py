@@ -2,13 +2,6 @@
 import pygame
 import os
 from dino_runner.components.dinosaur import Dinosaur
-
-# Tenta importar o cv2 e numpy para o vídeo do menu
-try:
-    import cv2
-    import numpy
-except ImportError:
-    cv2 = None
 from dino_runner.components.obstacle_manager import ObstacleManager
 from dino_runner.components.powerup_manager import PowerUpManager
 from dino_runner.components.cloud import Cloud
@@ -22,15 +15,15 @@ class Game:
         pygame.mixer.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Mini Jogo Dino")
-        pygame.display.set_icon(ICON)
+        if ICON is not None:
+            pygame.display.set_icon(ICON)
         self.clock = pygame.time.Clock()
         self.running = True
         self.playing = False
-        self.game_speed = 13  # Velocidade inicial um pouco maior
-        self.base_game_speed = 13  # Valor inicial para reset
+        self.game_speed = 15  # Velocidade inicial mais lenta
+        self.base_game_speed = 15  # Valor inicial para reset
         self.last_speedup_time = pygame.time.get_ticks()
         self.player = Dinosaur()
-        self.player.game = self  # Garante referência para o dinossauro
         self.obstacle_manager = ObstacleManager()
         self.powerup_manager = PowerUpManager()
         self.cloud = Cloud()
@@ -40,7 +33,7 @@ class Game:
         # Ciclo Dia/Noite: 1 min dia, 1 min noite, transição rápida (5s)
         self.day = True
         self.day_night_timer = pygame.time.get_ticks()
-        self.day_night_interval = 40000  # 40 segundos
+        self.day_night_interval = 60000  # 1 minuto
         self.day_night_transition = 5000  # 5 segundos
         self.day_night_progress = 0  # 0=dia, 1=noite
         self.day_night_direction = 1
@@ -57,30 +50,18 @@ class Game:
             return self.lives
         self.hud = HUD(self.player, get_lives_func)
 
-        # Carrega o vídeo do menu se o opencv estiver disponível
-        self.video = None
-        if cv2:
-            video_path = os.path.join('dino_runner', 'assets', 'Other', 'VideoMenu.mp4')
-            if os.path.exists(video_path):
-                self.video = cv2.VideoCapture(video_path)
-            else:
-                print(f"Aviso: Arquivo de vídeo não encontrado em '{video_path}'. O menu terá um fundo estático.")
-        else:
-            print("Aviso: opencv-python não está instalado. O vídeo do menu não será exibido. Instale com: pip install opencv-python numpy")
-
         self.jump_sound = None
         self.hit_sound = None
-        self.hurt_sound = None
+        self.die_sound = None
         jump_path = os.path.join('dino_runner', 'assets', 'Other', 'jump.wav')
         hit_path = os.path.join('dino_runner', 'assets', 'Other', 'hit.wav')
-        hurt_path = os.path.join('dino_runner', 'assets', 'Other', 'hurt.wav')
+        die_path = os.path.join('dino_runner', 'assets', 'Other', 'die.wav')
         if os.path.exists(jump_path):
             self.jump_sound = pygame.mixer.Sound(jump_path)
         if os.path.exists(hit_path):
             self.hit_sound = pygame.mixer.Sound(hit_path)
-        if os.path.exists(hurt_path):
-            self.hurt_sound = pygame.mixer.Sound(hurt_path)
-            self.hurt_sound.set_volume(1.0)  # Garante volume máximo
+        if os.path.exists(die_path):
+            self.die_sound = pygame.mixer.Sound(die_path)
 
     def load_high_score(self):
         """Carrega a pontuação máxima de um arquivo."""
@@ -126,9 +107,9 @@ class Game:
 
             user_input = pygame.key.get_pressed()
             now = pygame.time.get_ticks()
-            # Aumenta a velocidade do jogo: +0.5 a cada 10 segundos
-            if now - self.last_speedup_time > 10000:
-                self.game_speed += 0.5
+            # Aumenta a velocidade do jogo gradualmente
+            if now - self.last_speedup_time > 5000:
+                self.game_speed += 1
                 self.last_speedup_time = now
 
             self.update_day_night()
@@ -145,18 +126,16 @@ class Game:
             # Atualiza obstáculos e verifica colisões
             collision_detected = self.obstacle_manager.update(self.game_speed, self.player)
             if collision_detected:
-                if not self.player.is_invincible: # Só leva dano se não estiver invencível
+                if not self.player.is_invincible:
                     if self.hit_sound:
                         self.hit_sound.play()
-                    if self.hurt_sound:  # Toca o som de dano sempre que perder um coração
-                        print('DEBUG: Tocando hurt.wav')
-                        self.hurt_sound.play()
                     self.lives -= 1
                     if self.lives > 0:
-                        self.player.start_invincibility(pygame.time.get_ticks()) # Inicia invencibilidade
+                        self.player.start_invincibility()  # Chama sem argumento, método já pega o tempo atual
                         # O jogo continua, sem resetar a posição do dinossauro ou a rodada.
                     else:
-                        # Vidas são 0, é game over
+                        if self.die_sound:
+                            self.die_sound.play()
                         self.playing = False
                         self.game_over = True
                         # O loop sairá naturalmente após esta iteração
@@ -183,7 +162,6 @@ class Game:
         self.obstacle_manager.reset()
         self.powerup_manager.reset()
         self.player = Dinosaur()
-        self.player.game = self  # Garante referência para o dinossauro
         self.hud = HUD(self.player, lambda: self.lives) # Usa lambda para obter as vidas atuais
         # Pontuação e vidas não são resetadas em um reset de rodada
 
@@ -193,7 +171,6 @@ class Game:
         self.powerup_manager.reset()
         self.score.reset()
         self.player = Dinosaur()
-        self.player.game = self  # Garante referência para o dinossauro
         self.hud = HUD(self.player, lambda: self.lives) # Usa lambda para obter as vidas atuais
         self.bg_x_pos = 0
         self.lives = 3
@@ -210,45 +187,24 @@ class Game:
 
     def draw_high_score(self):
         """Desenha a pontuação máxima na tela."""
-        font_path = os.path.join('dino_runner', 'assets', 'Font', 'joystix monospace.otf')
-        font = pygame.font.Font(font_path, 20)
-        text = font.render(f'High Score: {self.high_score}', True, (200, 0, 0))  # Sempre vermelho
-        self.screen.blit(text, (SCREEN_WIDTH - 300, 18))  # Um pouco mais para a direita
+        font = pygame.font.Font(None, 28)
+        text = font.render(f'High Score: {self.high_score}', True, (200, 0, 0) if self.day else (255, 255, 0))
+        self.screen.blit(text, (SCREEN_WIDTH - 220, 10))
         if self.score.points > self.high_score:
             self.high_score = self.score.points
 
     def update_day_night(self):
-        """Atualiza o ciclo dia/noite e a transição."""
-        now = pygame.time.get_ticks()
-        if not self.in_transition:
-            if now - self.day_night_timer > self.day_night_interval:
-                self.in_transition = True
-                self.transition_start = now
+        """Alterna entre dia e noite a cada 700 pontos, igual ao Chrome Dino clássico."""
+        if self.score.points // 700 % 2 == 0:
+            self.day = True
         else:
-            progress = (now - self.transition_start) / self.day_night_transition
-            if progress >= 1:
-                self.day = not self.day
-                self.day_night_timer = now
-                self.in_transition = False
-                # Corrigido: se acabou de virar noite, progresso é 1; se acabou de virar dia, progresso é 0
-                self.day_night_progress = 1 if not self.day else 0
-            else:
-                # Corrige a direção da transição
-                if self.day: # Transicionando de dia para noite
-                    self.day_night_progress = progress
-                else: # Transicionando de noite para dia
-                    self.day_night_progress = 1 - progress
+            self.day = False
+        self.day_night_progress = 0
+        self.in_transition = False
 
     def get_day_night_color(self):
-        """Retorna a cor de fundo atual baseada no ciclo dia/noite."""
-        day_color = (255, 255, 255)
-        night_color = (30, 30, 30)
-        p = self.day_night_progress if self.in_transition else (0 if self.day else 1)
-        return (
-            int(day_color[0] * (1-p) + night_color[0] * p),
-            int(day_color[1] * (1-p) + night_color[1] * p),
-            int(day_color[2] * (1-p) + night_color[2] * p)
-        )
+        """Retorna a cor de fundo clássica baseada no ciclo dia/noite."""
+        return (255, 255, 255) if self.day else (30, 30, 30)
 
     def handle_powerup_timers(self):
         """Gerencia a duração dos power-ups ativos."""
@@ -262,21 +218,15 @@ class Game:
             
     def show_menu(self):
         """Exibe o menu principal do jogo."""
-        font_path = os.path.join('dino_runner', 'assets', 'Font', 'joystix monospace.otf')
-        anim_font = pygame.font.Font(font_path, 80)
-        sub_font = pygame.font.Font(font_path, 36)
-        free_font = pygame.font.Font(font_path, 36)
-        button_font = pygame.font.Font(font_path, 40)
+        anim_font = pygame.font.Font(None, 80)
+        sub_font = pygame.font.Font(None, 36)
+        free_font = pygame.font.Font(None, 36)
+        button_font = pygame.font.Font(None, 40)
         clock = pygame.time.Clock()
         color_anim = 0
         color_dir = 1
         button_rect = pygame.Rect(SCREEN_WIDTH//2-100, SCREEN_HEIGHT//2+40, 200, 50)
         exit_rect = pygame.Rect(SCREEN_WIDTH//2-100, SCREEN_HEIGHT//2+110, 200, 50)
-
-        # Variáveis para controlar a reprodução do vídeo mais lentamente
-        video_frame_surface = None
-        frame_count = 0
-
         while not self.playing and self.running and not self.game_over:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -294,31 +244,7 @@ class Game:
             if color_anim > 50 or color_anim < 0:
                 color_dir *= -1
             title_color = (0, 200-color_anim, 0)
-
-            # Desenha o fundo (vídeo ou cor sólida)
-            if self.video:
-                frame_count += 1
-                # Atualiza o quadro do vídeo a cada 2 quadros do jogo (30 FPS para o vídeo em um jogo de 60 FPS)
-                if frame_count % 2 == 0:
-                    ret, frame = self.video.read()
-                    if not ret:
-                        # Se o vídeo acabar, reinicia do primeiro quadro
-                        self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        ret, frame = self.video.read()
-                    
-                    if ret:
-                        frame = cv2.resize(frame, (SCREEN_WIDTH, SCREEN_HEIGHT))
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        frame = frame.swapaxes(0, 1) # Corrige a orientação para o pygame
-                        video_frame_surface = pygame.surfarray.make_surface(frame)
-                
-                if video_frame_surface:
-                    self.screen.blit(video_frame_surface, (0, 0))
-                else:
-                    self.screen.fill((255, 255, 255)) # Fundo branco se o quadro do vídeo não estiver pronto
-            else:
-                self.screen.fill((255, 255, 255)) # Fundo branco se não houver vídeo
-
+            self.screen.fill((255, 255, 255))
             title = anim_font.render('T-Rex 2.0', True, title_color)
             title_rect = title.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2-100))
             self.screen.blit(title, title_rect)
@@ -337,10 +263,10 @@ class Game:
             pygame.draw.rect(self.screen, (200, 0, 0), exit_rect, border_radius=10)
             sair = button_font.render('Sair', True, (255,255,255))
             self.screen.blit(sair, (exit_rect.x + (exit_rect.width - sair.get_width()) // 2, exit_rect.y + (exit_rect.height - sair.get_height()) // 2))
-            # High Score foi removido da tela de menu para uma aparência mais limpa.
-            # self.draw_high_score()
+            # High Score
+            self.draw_high_score()
             pygame.display.update()
-            clock.tick(60) # Mantém o jogo a 60 FPS
+            clock.tick(60)
 
     def show_game_over(self):
         """
@@ -382,7 +308,7 @@ class Game:
                     self.running = False
                     waiting = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    # Adiciona um pequeno atraso para evitar cliques acidentais logo após a morte
+                    # Add a small delay to prevent accidental clicks right after death
                     if reset_rect.collidepoint(event.pos) and pygame.time.get_ticks() - reset_time > 500:
                         self.save_high_score() # Salva a pontuação máxima antes de resetar
                         self.reset_game()
@@ -390,7 +316,7 @@ class Game:
                         self.playing = True
                         waiting = False
                 if event.type == pygame.KEYDOWN:
-                    # Permite entrada de teclado para resetar também
+                    # Allow keyboard input to reset as well
                     if pygame.time.get_ticks() - reset_time > 500:
                         self.save_high_score() # Salva a pontuação máxima antes de resetar
                         self.reset_game()
@@ -399,12 +325,19 @@ class Game:
                         waiting = False
 
     def draw_background(self):
-        """Desenha o fundo rolante."""
+        """Desenha o fundo rolante e ajusta cor do chão conforme dia/noite clássico."""
         image_width = BG.get_width()
-        # Ajuste para alinhar o chão do cenário com o pé do dinossauro
-        self.bg_y_pos = 380  # Ajuste conforme necessário para seu PNG
-        self.screen.blit(BG, (self.bg_x_pos, self.bg_y_pos))
-        self.screen.blit(BG, (self.bg_x_pos + image_width, self.bg_y_pos))
+        self.bg_y_pos = 380
+        # Chão e nuvem mais escuros à noite
+        if self.day:
+            self.screen.blit(BG, (self.bg_x_pos, self.bg_y_pos))
+            self.screen.blit(BG, (self.bg_x_pos + image_width, self.bg_y_pos))
+        else:
+            # Aplica um filtro escuro no BG à noite
+            bg_night = BG.copy()
+            bg_night.fill((60, 60, 60), special_flags=pygame.BLEND_RGB_MULT)
+            self.screen.blit(bg_night, (self.bg_x_pos, self.bg_y_pos))
+            self.screen.blit(bg_night, (self.bg_x_pos + image_width, self.bg_y_pos))
         self.bg_x_pos -= self.game_speed
         if self.bg_x_pos <= -image_width:
             self.bg_x_pos = 0

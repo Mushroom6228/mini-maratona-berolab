@@ -1,10 +1,10 @@
 import pygame
-
+import os
 from dino_runner.utils.constants import SCREEN_HEIGHT, SCREEN_WIDTH
 
 FONT_COLOR = (0, 0, 0)
 FONT_SIZE = 22
-FONT_STYLE = "freesansbold.ttf"
+FONT_STYLE = os.path.join('dino_runner', 'assets', 'Font', 'joystix monospace.otf')
 
 
 def draw_message_component(

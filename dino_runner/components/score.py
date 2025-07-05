@@ -47,7 +47,12 @@ class Score:
             base_color = (0,0,0)
             flash_color = (255,255,255)
         color = flash_color if self.flash else base_color
-        draw_message_component(f"Score: {self.points}", screen, color, self.font_size, 40, 1000)
+        from dino_runner.utils.text_utils import FONT_STYLE
+        font = pygame.font.Font(FONT_STYLE, 20)
+        text = font.render(f"Score: {self.points}", True, color)
+        text_rect = text.get_rect()
+        text_rect.topright = (1020, 60)
+        screen.blit(text, text_rect)
 
     def reset(self):
         self.points = 0
