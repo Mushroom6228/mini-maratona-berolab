@@ -1,5 +1,6 @@
 import random
 import pygame
+import os
 from dino_runner.components.powerups.shield import Shield
 from dino_runner.components.powerups.hammer import Hammer
 
@@ -8,6 +9,14 @@ class PowerUpManager:
         self.power_ups = []
         self.last_powerup_time = 0
         self.powerup_cooldown = 30000  # 30 segundos
+        self.powerup_sound = None
+        self.break_sound = None
+        powerup_path = os.path.join('dino_runner', 'assets', 'Other', 'powerup.wav')
+        break_path = os.path.join('dino_runner', 'assets', 'Other', 'break.wav')
+        if os.path.exists(powerup_path):
+            self.powerup_sound = pygame.mixer.Sound(powerup_path)
+        if os.path.exists(break_path):
+            self.break_sound = pygame.mixer.Sound(break_path)
 
     def update(self, game_speed, player):
         now = pygame.time.get_ticks()
@@ -34,6 +43,8 @@ class PowerUpManager:
                 elif power_up.type == "hammer":
                     player.has_hammer = True
                     player.hammer_time_up = pygame.time.get_ticks() + 8000  # 8 segundos
+                if self.powerup_sound:
+                    self.powerup_sound.play()
                 self.power_ups.remove(power_up)
 
     def draw(self, screen):

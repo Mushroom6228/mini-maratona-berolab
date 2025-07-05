@@ -17,7 +17,12 @@ class ObstacleManager:
             # Colisão precisa
             if player.dino_rect.colliderect(obstacle.rect):
                 if player.has_shield or player.has_hammer:
+                    # Toca o som de quebrar se disponível (corrigido para garantir que só toca se colidir COM powerup)
+                    if hasattr(player, 'game') and hasattr(player.game, 'powerup_manager') and hasattr(player.game.powerup_manager, 'break_sound'):
+                        if player.game.powerup_manager.break_sound:
+                            player.game.powerup_manager.break_sound.play()
                     self.obstacles.remove(obstacle)
+                    return False  # Garante que não perde vida ao quebrar com powerup
                 else:
                     return True  # Colidiu sem proteção
         return False

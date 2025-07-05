@@ -125,16 +125,14 @@ class Game:
 
             # Update obstacles and check for collisions
             if self.obstacle_manager.update(self.game_speed, self.player):
-                if self.hit_sound:
-                    self.hit_sound.play()
+                if self.die_sound:  # Toca o som ao perder um coração
+                    self.die_sound.play()
                 self.lives -= 1
                 if self.lives > 0:
                     self.reset_round()
                     continue # Skip remaining drawing/updating for this frame to avoid visual glitches
                 else:
                     # Pause the game immediately, without redrawing the animated dinosaur
-                    if self.die_sound: # Play die sound only on final death
-                        self.die_sound.play()
                     self.playing = False
                     self.game_over = True
                     # The loop will naturally exit after this iteration
@@ -228,10 +226,10 @@ class Game:
         current_time = pygame.time.get_ticks()
         if self.player.has_shield and current_time > self.player.shield_time_up:
             self.player.has_shield = False
-            self.player.image = self.player.running_img[0] # Corrected: Changed 'run_img' to 'running_img'
+            self.player.run()  # Corrigido: chama método que atualiza a imagem
         if self.player.has_hammer and current_time > self.player.hammer_time_up:
             self.player.has_hammer = False
-            # No specific image change for hammer, but good to note if there was one
+            self.player.run()  # Corrigido: chama método que atualiza a imagem
 
     def show_menu(self):
         """Displays the game's main menu."""
