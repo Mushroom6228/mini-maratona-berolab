@@ -1,5 +1,3 @@
-from dino_runner.components.obstacles import *
-from dino_runner.components.powerups import *
 from dino_runner.components.dinosaur import Dinosaur
 from dino_runner.components.Game import Game
 from dino_runner.components.obstacle_manager import ObstacleManager

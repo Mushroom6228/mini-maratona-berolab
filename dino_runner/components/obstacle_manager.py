@@ -14,10 +14,16 @@ class ObstacleManager:
                 self.obstacles.append(Bird())
         for obstacle in self.obstacles[:]:
             obstacle.update(game_speed, self.obstacles)
-            # Colisão precisa
-            # Ajuste: só considera colisão se estiver a 2 pixels ou menos de distância
-            inflate_rect = obstacle.rect.inflate(-4, -4)  # Reduz 2px de cada lado
-            if player.dino_rect.colliderect(inflate_rect):
+            # Colisão mais precisa e justa
+            # A hitbox do cacto é reduzida para que o jogador precise estar mais "dentro" do sprite para colidir
+            if isinstance(obstacle, Cactus):
+                # Reduz a hitbox em 20px na largura e 10px na altura
+                collision_rect = obstacle.rect.inflate(-20, -10)
+            else:
+                # A hitbox do pássaro também é um pouco reduzida para ser mais justa
+                collision_rect = obstacle.rect.inflate(-10, -10)
+
+            if player.dino_rect.colliderect(collision_rect):
                 if player.has_shield or player.has_hammer:
                     # Toca o som de quebrar se disponível (corrigido para garantir que só toca se colidir COM powerup)
                     if hasattr(player, 'game') and hasattr(player.game, 'powerup_manager') and hasattr(player.game.powerup_manager, 'break_sound'):

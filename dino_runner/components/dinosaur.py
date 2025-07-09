@@ -1,5 +1,5 @@
 import pygame
-from dino_runner.utils.constants import RUNNING, JUMPING, DUCKING, RUNNING_SHIELD, JUMPING_SHIELD, DUCKING_SHIELD, RUNNING_HAMMER, JUMPING_HAMMER, DUCKING_HAMMER, DEFAULT_TYPE
+from dino_runner.utils.constants import RUNNING, JUMPING, DUCKING, RUNNING_SHIELD, JUMPING_SHIELD, DUCKING_SHIELD, RUNNING_HAMMER, JUMPING_HAMMER, DUCKING_HAMMER
 
 class Dinosaur:
     X_POS = 80
@@ -8,7 +8,6 @@ class Dinosaur:
     JUMP_VEL = 8.5
 
     def __init__(self):
-        self.type = DEFAULT_TYPE
         self.image = RUNNING[0]
         self.dino_rect = self.image.get_rect()
         self.dino_rect.x = self.X_POS

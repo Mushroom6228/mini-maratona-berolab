@@ -1,23 +1,17 @@
 import pygame
-from dino_runner.utils.text_utils import draw_message_component
 import os
 from dino_runner.utils.constants import IMG_DIR
+from dino_runner.utils.text_utils import FONT_STYLE
 
 class Score:
     def __init__(self):
         self.points = 0
         self._accum = 0.0
-        self.font_color = (0, 0, 0)
-        self.font_size = 22
         self.flash = False
         self.flash_timer = 0
         # Carrega som de checkpoint se existir
-        self.checkpoint_sound = None
         self.point_sound = None
-        score_path = os.path.join(IMG_DIR, 'Other', 'score.wav')
         point_path = os.path.join(IMG_DIR, 'Other', 'point.wav')
-        if os.path.exists(score_path):
-            self.checkpoint_sound = pygame.mixer.Sound(score_path)
         if os.path.exists(point_path):
             self.point_sound = pygame.mixer.Sound(point_path)
 
@@ -47,11 +41,10 @@ class Score:
             base_color = (0,0,0)
             flash_color = (255,255,255)
         color = flash_color if self.flash else base_color
-        from dino_runner.utils.text_utils import FONT_STYLE
         font = pygame.font.Font(FONT_STYLE, 20)
         text = font.render(f"Score: {self.points}", True, color)
         text_rect = text.get_rect()
-        text_rect.topright = (1020, 60)
+        text_rect.topright = (1080, 40)
         screen.blit(text, text_rect)
 
     def reset(self):

@@ -53,9 +53,7 @@ class Game:
         self.game_over = False
 
         # Define get_lives como um método da instância para passar para HUD
-        def get_lives_func():
-            return self.lives
-        self.hud = HUD(self.player, get_lives_func)
+        self.hud = HUD(lambda: self.lives)
 
         # Carrega o vídeo do menu se o opencv estiver disponível
         self.video = None
@@ -149,7 +147,6 @@ class Game:
                     if self.hit_sound:
                         self.hit_sound.play()
                     if self.hurt_sound:  # Toca o som de dano sempre que perder um coração
-                        print('DEBUG: Tocando hurt.wav')
                         self.hurt_sound.play()
                     self.lives -= 1
                     if self.lives > 0:
@@ -175,18 +172,6 @@ class Game:
             pygame.display.update()
             self.clock.tick(FPS)
 
-    def reset_round(self):
-        """Reseta elementos do jogo para uma nova rodada após um acerto (mas não game over).
-        NOTA: Esta função não é mais chamada em caso de acerto com vidas restantes,
-        apenas o estado de invencibilidade é ativado. Ela pode ser usada para
-        outros resets se necessário."""
-        self.obstacle_manager.reset()
-        self.powerup_manager.reset()
-        self.player = Dinosaur()
-        self.player.game = self  # Garante referência para o dinossauro
-        self.hud = HUD(self.player, lambda: self.lives) # Usa lambda para obter as vidas atuais
-        # Pontuação e vidas não são resetadas em um reset de rodada
-
     def reset_game(self):
         """Reseta todos os elementos do jogo para um novo jogo completo."""
         self.obstacle_manager.reset()
@@ -194,7 +179,7 @@ class Game:
         self.score.reset()
         self.player = Dinosaur()
         self.player.game = self  # Garante referência para o dinossauro
-        self.hud = HUD(self.player, lambda: self.lives) # Usa lambda para obter as vidas atuais
+        self.hud = HUD(lambda: self.lives) # Usa lambda para obter as vidas atuais
         self.bg_x_pos = 0
         self.lives = 3
         # Reseta ciclo dia/noite
@@ -284,6 +269,7 @@ class Game:
                     return
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if button_rect.collidepoint(event.pos):
+                        self.reset_game()
                         self.playing = True
                         return
                     if exit_rect.collidepoint(event.pos):
