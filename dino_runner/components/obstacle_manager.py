@@ -37,15 +37,18 @@ class ObstacleManager:
             obstacle.update(game_speed, player) # Atualiza a posição do obstáculo (move para a esquerda).
             if obstacle.rect.right < 0: # Se o obstáculo saiu completamente da tela.
                 self.obstacles.remove(obstacle) # Remove o obstáculo da lista.
-            # Cria um retângulo de colisão menor para o dinossauro para colisões mais precisas.
-            collision_rect = player.dino_rect.inflate(-28, -14)
+            # Cria um retângulo de colisão para o dinossauro
+            if hasattr(player, 'modo_mini') and player.modo_mini: #
+                collision_rect = player.dino_rect.inflate(-54, -28) # Diminui bastante a colisão só na forma pequena
+            else:
+                collision_rect = player.dino_rect.inflate(-12, 0) # Aumenta a colisão quando está normal
             collision_rect.center = player.dino_rect.center # Centraliza o novo retângulo.
             # Ajusta a caixa de colisão do obstáculo para cacto e pássaro (bird)
             obstacle_rect = obstacle.rect.copy()
             if obstacle.__class__.__name__ == 'Cactus':
-                obstacle_rect = obstacle_rect.inflate(-8, -8)  # Diminui um pouco a colisão do cacto
+                obstacle_rect = obstacle_rect.inflate(-4, -4)  # Aumenta um pouco a colisão do cacto
             elif obstacle.__class__.__name__ == 'Bird':
-                obstacle_rect = obstacle_rect.inflate(-12, -8)  # Diminui um pouco a colisão do pássaro
+                obstacle_rect = obstacle_rect.inflate(-8, -4)  # Aumenta um pouco a colisão do pássaro
             if collision_rect.colliderect(obstacle_rect): # Verifica a colisão entre o dinossauro e o obstáculo.
                 if player.has_shield or player.has_hammer: # Se o jogador tem escudo ou martelo.
                     self.obstacles.remove(obstacle) # Remove o obstáculo (ele é "quebrado").

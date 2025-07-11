@@ -95,6 +95,14 @@ class Game:
                 self.upgrade_sound.set_volume(1.0)
             except Exception:
                 self.upgrade_sound = None # Define como None em caso de erro.
+        # Easter egg: código secreto para inverter o dino
+        self.cheat_code = [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN] #
+        self.input_sequence = [] #
+        self.invertido = False #
+        # Easter egg: código secreto para modo Mini Dino
+        self.cheat_code_mini = [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_LEFT, pygame.K_RIGHT] #
+        self.input_sequence_mini = [] #
+        self.modo_mini = False #
 
     def load_high_score(self):
         """Carrega a pontuação máxima de um arquivo."""
@@ -141,6 +149,18 @@ class Game:
                         self.player.start_jump() # Inicia o pulo do dinossauro.
                         if self.jump_sound: # Toca o som de pulo, se disponível.
                             self.jump_sound.play()
+                # --- Easter Egg: Detecta sequência secreta --- #
+                if event.type == pygame.KEYDOWN:
+                    self.input_sequence.append(event.key) #
+                    self.input_sequence = self.input_sequence[-4:] #
+                    if self.input_sequence == self.cheat_code:
+                        self.invertido = not self.invertido #
+                    # --- Easter Egg: Detecta modo Mini Dino --- #
+                    self.input_sequence_mini.append(event.key) #
+                    self.input_sequence_mini = self.input_sequence_mini[-4:] #
+                    if self.input_sequence_mini == self.cheat_code_mini:
+                        self.modo_mini = not self.modo_mini #
+                        # print("✨ Modo Mini Dino ativado!") #
             user_input = pygame.key.get_pressed() # Obtém o estado de todas as teclas pressionadas.
             now = pygame.time.get_ticks() # Obtém o tempo atual em milissegundos.
             # Lógica para aumentar a velocidade do jogo a cada 5 segundos.
@@ -170,6 +190,8 @@ class Game:
                             break
                         attempts += 1
                 cloud.draw(self.screen) # Desenha a nuvem na tela.
+            self.player.invertido = self.invertido # Passa o estado do easter egg para o dinossauro
+            self.player.modo_mini = self.modo_mini #
             self.player.update(user_input) # Atualiza o estado do dinossauro com base na entrada do usuário.
             self.player.draw(self.screen) # Desenha o dinossauro na tela.
             # Atualiza os obstáculos e verifica colisões com o jogador.
@@ -369,7 +391,17 @@ class Game:
             reset_img.fill((0, 255, 0))
         if dino_dead_img: # Se a imagem do dinossauro morto foi carregada.
             dino_rect = self.player.dino_rect.copy() # Copia o retângulo de colisão do dinossauro.
-            self.screen.blit(dino_dead_img, (dino_rect.x, dino_rect.y)) # Desenha o dinossauro morto.
+            # Ajusta o sprite morto se invertido ou mini
+            img = dino_dead_img #
+            if hasattr(self.player, 'invertido') and self.player.invertido: #
+                img = pygame.transform.rotate(img, 180) #
+            if hasattr(self.player, 'modo_mini') and self.player.modo_mini: #
+                mini_img = pygame.transform.scale(img, (dino_rect.width // 2, dino_rect.height // 2)) #
+                mini_rect = mini_img.get_rect(midbottom=dino_rect.midbottom) #
+                img = mini_img #
+                self.screen.blit(img, mini_rect) #
+            else:
+                self.screen.blit(img, (dino_rect.x, dino_rect.y)) # Desenha o dinossauro morto.
         if game_over_img and reset_img: # Se as imagens de Game Over e Reset foram carregadas.
             # Obtém os retângulos das imagens centralizados na tela.
             game_over_rect = game_over_img.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))

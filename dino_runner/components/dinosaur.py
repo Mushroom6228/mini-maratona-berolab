@@ -144,7 +144,16 @@ class Dinosaur:
 
     def draw(self, screen): # Método para desenhar o dinossauro na tela.
         if self.show_dino: # Só desenha o dinossauro se a flag 'show_dino' for True (para o efeito de piscar).
-            screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y)) # Desenha a imagem do dinossauro na sua posição.
+            img = self.image
+            if hasattr(self, 'invertido') and self.invertido: #
+                img = pygame.transform.rotate(img, 180) #
+            if hasattr(self, 'modo_mini') and self.modo_mini: #
+                mini_img = pygame.transform.scale(img, (self.dino_rect.width // 2, self.dino_rect.height // 2)) #
+                mini_rect = mini_img.get_rect(midbottom=self.dino_rect.midbottom) #
+                img = mini_img #
+                screen.blit(img, mini_rect) #
+            else:
+                screen.blit(img, (self.dino_rect.x, self.dino_rect.y)) # Desenha a imagem do dinossauro na sua posição.
 
     def start_invincibility(self, current_time): # Método para ativar o estado de invencibilidade.
         self.is_invincible = True # Ativa a flag de invencibilidade.
