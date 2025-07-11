@@ -1,22 +1,13 @@
-<<<<<<< HEAD
 import pygame # Importa a biblioteca Pygame, essencial para o desenvolvimento de jogos.
 import random # Importa o módulo random para gerar números aleatórios.
 # Importa constantes como tipos de power-ups e largura da tela.
 from dino_runner.utils.constants import SHIELD_TYPE, HAMMER_TYPE, SCREEN_WIDTH
 # Importa as classes base de PowerUp, Hammer (Martelo) e Shield (Escudo).
-=======
-# dino_runner/components/powerups/powerup_manager.py
-import pygame
-import random
-from dino_runner.utils.constants import SHIELD_TYPE, HAMMER_TYPE, SCREEN_WIDTH
-# Importa as classes PowerUp, Hammer e Shield
->>>>>>> be73f1d8742b9414b87a1ef857da4e48644b5e82
 from dino_runner.components.powerups.powerup import PowerUp
 from dino_runner.components.powerups.hammer import Hammer
 from dino_runner.components.powerups.shield import Shield
 
 class PowerUpManager:
-<<<<<<< HEAD
     # O construtor recebe o som do power-up e o gerenciador de obstáculos (opcionalmente).
     def __init__(self, powerup_sound=None, obstacle_manager=None):
         self.power_ups = [] # Lista para armazenar os power-ups ativos na tela.
@@ -25,36 +16,32 @@ class PowerUpManager:
         self.powerup_sound = powerup_sound # Armazena o objeto de som do power-up.
         self.obstacle_manager = obstacle_manager # Armazena a referência para o gerenciador de obstáculos.
         self.MIN_DISTANCE_FROM_OBSTACLE = 200 # Distância mínima em pixels de um obstáculo para um power-up ser gerado.
+        self.next_type = None  # Alternância entre tipos
 
     # Atualiza o estado dos power-ups a cada quadro.
     def update(self, game_speed, player):
         self.add_power_up() # Tenta adicionar um novo power-up.
         # Itera sobre uma cópia da lista para permitir a remoção de power-ups durante a iteração.
         for power_up in list(self.power_ups):
-            power_up.update(game_speed, player) # Atualiza a posição do power-up (move para a esquerda).
+            power_up.update(game_speed) # Atualiza a posição do power-up (move para a esquerda).
             if power_up.rect.right < 0: # Se o power-up saiu completamente da tela.
                 self.power_ups.remove(power_up) # Remove o power-up da lista.
             # Verifica a colisão entre o jogador e o power-up.
             if player.dino_rect.colliderect(power_up.rect):
-                game = getattr(player, 'game', None) # Obtém a instância do jogo a partir do jogador, se existir.
                 if power_up.type == SHIELD_TYPE: # Se o power-up for um escudo.
                     player.has_shield = True # Ativa o escudo para o jogador.
                     # Define o tempo em que o escudo irá expirar (10 segundos a partir de agora).
                     player.shield_time_up = pygame.time.get_ticks() + 10000
-                    # Toca o som de upgrade se disponível no objeto game, caso contrário, toca o som powerup_sound.
-                    if game and hasattr(game, 'upgrade_sound') and game.upgrade_sound:
-                        game.upgrade_sound.play()
-                    elif self.powerup_sound:
-                        self.powerup_sound.play()
                 elif power_up.type == HAMMER_TYPE: # Se o power-up for um martelo.
                     player.has_hammer = True # Ativa o martelo para o jogador.
                     # Define o tempo em que o martelo irá expirar (10 segundos a partir de agora).
                     player.hammer_time_up = pygame.time.get_ticks() + 10000
-                    # Toca o som de upgrade se disponível no objeto game, caso contrário, toca o som powerup_sound.
-                    if game and hasattr(game, 'upgrade_sound') and game.upgrade_sound:
-                        game.upgrade_sound.play()
-                    elif self.powerup_sound:
-                        self.powerup_sound.play()
+                # Toca upgrade.wav se disponível
+                game = getattr(player, 'game', None)
+                if game and hasattr(game, 'upgrade_sound') and game.upgrade_sound:
+                    game.upgrade_sound.play()
+                elif self.powerup_sound: # Se o som do power-up estiver carregado.
+                    self.powerup_sound.play() # Toca o som do power-up.
                 self.power_ups.remove(power_up) # Remove o power-up da tela após a coleta.
 
     # Desenha todos os power-ups ativos na tela.
@@ -67,12 +54,14 @@ class PowerUpManager:
         now = pygame.time.get_ticks() # Obtém o tempo atual.
         if now - self.last_spawn_time > self.spawn_interval: # Se o intervalo de spawn passou.
             power_up_candidate = None # Inicializa o power-up candidato como None.
-            # Escolhe aleatoriamente entre um escudo ou um martelo.
-            power_up_choice = random.choice([SHIELD_TYPE, HAMMER_TYPE])
-            
-            if power_up_choice == SHIELD_TYPE: # Se a escolha for escudo.
+            # Alterna entre SHIELD_TYPE e HAMMER_TYPE
+            if self.next_type is None:
+                self.next_type = random.choice([SHIELD_TYPE, HAMMER_TYPE])
+            else:
+                self.next_type = HAMMER_TYPE if self.next_type == SHIELD_TYPE else SHIELD_TYPE
+            if self.next_type == SHIELD_TYPE: # Se a escolha for escudo.
                 power_up_candidate = Shield() # Cria uma nova instância de Shield.
-            elif power_up_choice == HAMMER_TYPE: # Se a escolha for martelo.
+            elif self.next_type == HAMMER_TYPE: # Se a escolha for martelo.
                 power_up_candidate = Hammer() # Cria uma nova instância de Hammer.
             
             can_spawn = True # Flag para verificar se o power-up pode ser gerado.
@@ -96,70 +85,3 @@ class PowerUpManager:
     def reset(self):
         self.power_ups = [] # Limpa a lista de power-ups.
         self.last_spawn_time = pygame.time.get_ticks() # Reseta o temporizador do último spawn.
-=======
-    def __init__(self, powerup_sound=None, obstacle_manager=None): # Adiciona obstacle_manager ao init
-        self.power_ups = []
-        self.last_spawn_time = pygame.time.get_ticks()
-        self.spawn_interval = 20000 # milissegundos
-        self.powerup_sound = powerup_sound # Armazena o objeto de som
-        self.obstacle_manager = obstacle_manager # Armazena o obstacle_manager
-        self.MIN_DISTANCE_FROM_OBSTACLE = 200 # Distância mínima em pixels
-
-    def update(self, game_speed, player):
-        self.add_power_up()
-        for power_up in list(self.power_ups):
-            power_up.update(game_speed, player)
-            if power_up.rect.right < 0:
-                self.power_ups.remove(power_up)
-            
-            # Detecção de colisão
-            if player.dino_rect.colliderect(power_up.rect):
-                if power_up.type == SHIELD_TYPE:
-                    player.has_shield = True
-                    player.shield_time_up = pygame.time.get_ticks() + 10000 # 10 segundos
-                elif power_up.type == HAMMER_TYPE:
-                    player.has_hammer = True
-                    player.hammer_time_up = pygame.time.get_ticks() + 10000 # 10 segundos
-                
-                # Toca o som do power-up
-                if self.powerup_sound: # Verifica se o som existe antes de tentar tocar
-                    self.powerup_sound.play()
-
-                self.power_ups.remove(power_up)
-
-    def draw(self, screen):
-        for power_up in self.power_ups:
-            power_up.draw(screen)
-
-    def add_power_up(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_spawn_time > self.spawn_interval:
-            # Tenta gerar um power-up
-            power_up_candidate = None
-            power_up_choice = random.choice([SHIELD_TYPE, HAMMER_TYPE])
-            
-            if power_up_choice == SHIELD_TYPE:
-                power_up_candidate = Shield()
-            elif power_up_choice == HAMMER_TYPE:
-                power_up_candidate = Hammer()
-            
-            # Verifica se o power-up candidato está muito perto de algum obstáculo
-            can_spawn = True
-            if power_up_candidate and self.obstacle_manager:
-                for obstacle in self.obstacle_manager.obstacles:
-                    # Calcula a distância horizontal entre o power-up e o obstáculo
-                    distance = abs(power_up_candidate.rect.x - obstacle.rect.x)
-                    # Verifica se estão muito próximos e se o obstáculo ainda está na tela
-                    if distance < self.MIN_DISTANCE_FROM_OBSTACLE and obstacle.rect.x > 0:
-                        can_spawn = False
-                        break
-            
-            if can_spawn and power_up_candidate:
-                self.power_ups.append(power_up_candidate)
-                self.last_spawn_time = now
-                self.spawn_interval = random.randint(15000, 25000) # Varia o tempo de spawn
-
-    def reset(self):
-        self.power_ups = []
-        self.last_spawn_time = pygame.time.get_ticks()
->>>>>>> be73f1d8742b9414b87a1ef857da4e48644b5e82

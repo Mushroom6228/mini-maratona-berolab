@@ -1,11 +1,5 @@
-<<<<<<< HEAD
 import sys # Importa o módulo sys, que fornece acesso a variáveis e funções que interagem fortemente com o interpretador.
 import os # Importa o módulo os, que fornece uma maneira de usar funcionalidades dependentes do sistema operacional, como manipulação de caminhos.
-=======
-# dino_runner/utils/resource_manager.py
-import sys
-import os
->>>>>>> be73f1d8742b9414b87a1ef857da4e48644b5e82
 
 def resource_path(relative_path):
     """
@@ -13,7 +7,6 @@ def resource_path(relative_path):
     A `relative_path` deve ser relativa ao diretório raiz do pacote `dino_runner`.
     Ex: "dino_runner/assets/Font/joystix monospace.otf"
     """
-<<<<<<< HEAD
     # Normaliza as barras no caminho para usar sempre barras frontais e remove barras duplas.
     relative_path = relative_path.replace('\\', '/').replace('//', '/')
     # Remove repetições de 'dino_runner/' no início do caminho, se houver.
@@ -45,21 +38,3 @@ def resource_path(relative_path):
     # Normaliza o caminho completo para o formato padrão do sistema operacional (ex: converte '/' para '\' no Windows).
     full_path = os.path.normpath(full_path)
     return full_path # Retorna o caminho absoluto e normalizado para o recurso.
-=======
-    try:
-        # PyInstaller cria uma pasta temporária e armazena o caminho em _MEIPASS
-        # Quando empacotamos "dino_runner", ele vai para sys._MEIPASS/dino_runner
-        # Então, o caminho base para os assets é sys._MEIPASS/dino_runner
-        base_path = os.path.join(sys._MEIPASS, "dino_runner")
-        print(f"DEBUG (resource_path): Executável detectado. Base path: {base_path}") # Debug
-    except Exception:
-        # No ambiente de desenvolvimento, o caminho base é o diretório onde `main.py` está.
-        # O script `resource_manager.py` está em dino_runner/utils/, então precisamos subir 2 níveis
-        # para chegar à raiz do projeto (onde "dino_runner" e "main.py" estão).
-        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        print(f"DEBUG (resource_path): Ambiente de desenvolvimento. Base path: {base_path}") # Debug
-
-    full_path = os.path.join(base_path, relative_path)
-    print(f"DEBUG (resource_path): Resolvendo caminho: {full_path}") # Debug
-    return full_path
->>>>>>> be73f1d8742b9414b87a1ef857da4e48644b5e82

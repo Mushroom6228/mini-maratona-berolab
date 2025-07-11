@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import pygame # Importa a biblioteca Pygame, essencial para o desenvolvimento de jogos.
 import random # Importa o módulo random para gerar números aleatórios.
 from dino_runner.utils.constants import SCREEN_WIDTH # Importa a constante SCREEN_WIDTH (largura da tela).
@@ -25,31 +24,3 @@ class PowerUp:
     # Desenha o power-up na tela.
     def draw(self, screen):
         screen.blit(self.image, self.rect) # Desenha a imagem do power-up na sua posição atual.
-=======
-# dino_runner/components/powerups/powerup.py
-import pygame
-import random
-from dino_runner.utils.constants import SCREEN_WIDTH
-
-class PowerUp:
-    def __init__(self, image, type):
-        # Garante que a imagem não seja None antes de tentar usar get_rect()
-        if image:
-            self.image = image
-            self.rect = self.image.get_rect()
-        else:
-            print(f"Aviso: Imagem de power-up inválida ou vazia para tipo {type}. Usando placeholder.")
-            self.image = pygame.Surface((30, 30)) # Placeholder
-            self.image.fill((0, 255, 255)) # Cor ciano para fácil identificação
-            self.rect = self.image.get_rect()
-
-        self.type = type
-        self.rect.x = SCREEN_WIDTH
-        self.rect.y = random.randint(200, 300) # Altura aleatória para power-ups
-
-    def update(self, game_speed):
-        self.rect.x -= game_speed
-
-    def draw(self, screen):
-        screen.blit(self.image, self.rect)
->>>>>>> be73f1d8742b9414b87a1ef857da4e48644b5e82
