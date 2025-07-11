@@ -22,21 +22,30 @@ class PowerUpManager:
         self.add_power_up() # Tenta adicionar um novo power-up.
         # Itera sobre uma cópia da lista para permitir a remoção de power-ups durante a iteração.
         for power_up in list(self.power_ups):
-            power_up.update(game_speed) # Atualiza a posição do power-up (move para a esquerda).
+            power_up.update(game_speed, player) # Atualiza a posição do power-up (move para a esquerda).
             if power_up.rect.right < 0: # Se o power-up saiu completamente da tela.
                 self.power_ups.remove(power_up) # Remove o power-up da lista.
             # Verifica a colisão entre o jogador e o power-up.
             if player.dino_rect.colliderect(power_up.rect):
+                game = getattr(player, 'game', None) # Obtém a instância do jogo a partir do jogador, se existir.
                 if power_up.type == SHIELD_TYPE: # Se o power-up for um escudo.
                     player.has_shield = True # Ativa o escudo para o jogador.
                     # Define o tempo em que o escudo irá expirar (10 segundos a partir de agora).
                     player.shield_time_up = pygame.time.get_ticks() + 10000
+                    # Toca o som de upgrade se disponível no objeto game, caso contrário, toca o som powerup_sound.
+                    if game and hasattr(game, 'upgrade_sound') and game.upgrade_sound:
+                        game.upgrade_sound.play()
+                    elif self.powerup_sound:
+                        self.powerup_sound.play()
                 elif power_up.type == HAMMER_TYPE: # Se o power-up for um martelo.
                     player.has_hammer = True # Ativa o martelo para o jogador.
                     # Define o tempo em que o martelo irá expirar (10 segundos a partir de agora).
                     player.hammer_time_up = pygame.time.get_ticks() + 10000
-                if self.powerup_sound: # Se o som do power-up estiver carregado.
-                    self.powerup_sound.play() # Toca o som do power-up.
+                    # Toca o som de upgrade se disponível no objeto game, caso contrário, toca o som powerup_sound.
+                    if game and hasattr(game, 'upgrade_sound') and game.upgrade_sound:
+                        game.upgrade_sound.play()
+                    elif self.powerup_sound:
+                        self.powerup_sound.play()
                 self.power_ups.remove(power_up) # Remove o power-up da tela após a coleta.
 
     # Desenha todos os power-ups ativos na tela.
