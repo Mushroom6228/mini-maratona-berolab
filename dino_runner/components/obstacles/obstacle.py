@@ -1,17 +1,27 @@
+# dino_runner/components/obstacles/obstacle.py
 import pygame
+from dino_runner.utils.constants import SCREEN_WIDTH
 
-class Obstacle(pygame.sprite.Sprite):
+class Obstacle:
     def __init__(self, image, type):
-        super().__init__()
-        self.image = image[type] if isinstance(image, list) else image
-        self.type = type
-        self.rect = self.image.get_rect()
-        self.rect.x = 1100
+        # Garante que a imagem seja uma lista e não esteja vazia
+        if isinstance(image, list) and image:
+            self.image = image
+            self.rect = self.image[0].get_rect()
+        elif not isinstance(image, list) and image is not None: # Se for uma única imagem (e não None)
+            self.image = [image] # Converte para lista para consistência
+            self.rect = image.get_rect()
+        else: # Fallback para imagem vazia ou None
+            print(f"Aviso: Imagem de obstáculo inválida ou vazia para tipo {type}. Usando placeholder.")
+            self.image = [pygame.Surface((30, 30))] # Placeholder
+            self.image[0].fill((255, 0, 255)) # Cor magenta para fácil identificação
+            self.rect = self.image[0].get_rect()
 
-    def update(self, game_speed, obstacles):
+        self.type = type
+        self.rect.x = SCREEN_WIDTH
+
+    def update(self, game_speed, obstacles=None):
         self.rect.x -= game_speed
-        if self.rect.x < -self.rect.width:
-            obstacles.remove(self)
 
     def draw(self, screen):
-        screen.blit(self.image, self.rect)
+        screen.blit(self.image[0], self.rect)
